@@ -14,9 +14,10 @@ public class TestMultiPlayer {
 		String sampleRSController = "tracks.multiPlayer.advanced.sampleRS.Agent";
 		String sampleRHEAController = "tracks.multiPlayer.advanced.sampleRHEA.Agent";
 		String humanController = "tracks.multiPlayer.tools.human.Agent";
+		String myHeuristicController = "tracks.multiPlayer.myController.heuristicSearch.Agent";
 
 		// 可以在这里设置游戏中的控制器，如果要自己玩，可以把其中一个控制器改为humanController，自己就可以控制相应的agent
-		String controllers = humanController + " " + sampleMCTSController;
+		String controllers = myHeuristicController + " " + sampleMCTSController;
 		boolean visuals = true;
 		String recordActionsFile = null;
 		// 随机种子的设置
