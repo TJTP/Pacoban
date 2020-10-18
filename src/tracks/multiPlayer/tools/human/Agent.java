@@ -1,6 +1,7 @@
 package tracks.multiPlayer.tools.human;
 
 import core.game.Game;
+import core.game.Observation;
 import core.game.StateObservation;
 import core.game.StateObservationMulti;
 import core.player.AbstractMultiPlayer;
@@ -45,6 +46,8 @@ public class Agent extends AbstractMultiPlayer
         Types.ACTIONS action = Types.ACTIONS.fromVector(move);
         if(action == Types.ACTIONS.ACTION_NIL && useOn)
             action = Types.ACTIONS.ACTION_USE;
+        //Debug
+//        System.out.println(stateObs.getGameScore(id));
 
         return action;
     }
