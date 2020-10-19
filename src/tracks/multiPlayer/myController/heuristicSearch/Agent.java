@@ -14,12 +14,10 @@ import java.util.Collections;
 import java.util.Random;
 
 public class Agent extends AbstractMultiPlayer {
-    private int oppID; //player ID of the opponent
+    private int oppID; //Player ID of the opponent
     private int id; //ID of this player
-    private int no_players; //number of players in the game
-    private boolean isDebug;
-//    public static double epsilon = 1e-6;
-//    public static Random m_rnd;
+    private int no_players; //Number of players in the game
+    private static final boolean isDebug = false; //Debug switch
 
     /**
      * initialize all variables for the agent
@@ -31,14 +29,11 @@ public class Agent extends AbstractMultiPlayer {
         id = playerID;
         no_players = stateObs.getNoPlayers();
         oppID = (id + 1) % stateObs.getNoPlayers();
-        isDebug = false; //Debug switch
-
-        //Debug
-        if (isDebug) {
-//            Vector2d avatarPosition = stateObs.getAvatarPosition(this.id);
-           //Print position (arrays)
-//            printGameInfo(stateObs.getImmovablePositions(avatarPosition));
-        }
+if (isDebug) {
+//    Vector2d avatarPosition = stateObs.getAvatarPosition(this.id);
+//    printGameInfo(stateObs.getImmovablePositions(avatarPosition));
+//    System.out.println(stateObs.getBlockSize());
+}
     }
 
     /**
@@ -53,48 +48,80 @@ public class Agent extends AbstractMultiPlayer {
         MyHeuristic heuristic = new MyHeuristic(stateObs);
         Types.ACTIONS oppAction = getOppNotLosingAction(stateObs, this.id, this.oppID);
         double maxGain = Double.NEGATIVE_INFINITY;
-        //Debug info
-        if (isDebug) {
-            Vector2d avatarPos = stateObs.getAvatarPosition(this.id);
-//            printGameInfo(stateObs.getImmovablePositions()[3]);
-//            System.out.println(stateObs.getImmovablePositions()[3].size());
-//            System.out.println(stateObs.getAvailableActions(this.oppID));
-//            System.out.println(stateObs.getAvatarHealthPoints(this.oppID));
-//            System.out.println(stateObs.getGameScore(this.oppID));
-            ArrayList<Observation>[] ghostObss = stateObs.getNPCPositions(avatarPos);
-            //printGameInfo(ghostObss, 0);
-            if (ghostObss != null) {
-                System.out.println(ghostObss.length);
-            }
-            printGameInfo(ghostObss);
-
-        }
-
+        double sameGain = Double.NEGATIVE_INFINITY;
+if (isDebug) {
+//    Vector2d avatarPos = stateObs.getAvatarPosition(this.id);
+//    printGameInfo(stateObs.getImmovablePositions()[3]);
+//    System.out.println(stateObs.getImmovablePositions()[3].size());
+//    System.out.println(stateObs.getAvailableActions(this.oppID));
+//    System.out.println(stateObs.getAvatarHealthPoints(this.oppID));
+//    System.out.println(stateObs.getGameScore(this.oppID));
+//    ArrayList<Observation>[] ghostObss = stateObs.getNPCPositions(avatarPos);
+//    if (ghostObss != null) {
+//        System.out.println(ghostObss.length);
+//    }
+//    printGameInfo(ghostObss);
+//    System.out.println(Types.ACTIONS.ACTION_LEFT.getKey());
+}
+if (isDebug) {
+    System.out.println(String.join("", Collections.nCopies(20, "+")));
+    System.out.print("Opp action: <");
+    System.out.print(oppAction);
+    System.out.println(">");
+}
         ArrayList<Types.ACTIONS> availableActions = stateObs.getAvailableActions();
-        for (int i = 0; i < availableActions.size() - 1; i++) { //不考虑ACTION_NIL
+        ArrayList<Types.ACTIONS> sameBestActions = new ArrayList<>();
+if (isDebug) {
+//    for (Types.ACTIONS action: availableActions) {
+//        System.out.print(action);
+//        System.out.print(" ");
+//    }
+//    System.out.print("\n");
+}
+        for (int i = 0; i < availableActions.size(); i++) { //不考虑ACTION_NIL
             StateObservationMulti stCopy = stateObs.copy();
+            Types.ACTIONS curAction = availableActions.get(i);
 
             //需要提供两个players的动作来改变总状态
             Types.ACTIONS[] actions = new Types.ACTIONS[no_players];
-            actions[id] = availableActions.get(i);
+            actions[id] = curAction;
             actions[oppID] = oppAction;
-
             stCopy.advance(actions);
-            //Debug
-            if (isDebug) {
-//                System.out.println(action);
-//                System.out.println(stCopy.getAvatarOrientation(this.id));
+if (isDebug) {
+    System.out.println(curAction);
+}
+            double curGain = heuristic.evaluateState(stCopy, this.id);
+            if (curGain == maxGain) {
+                if (sameBestActions.size() == 0) {
+                    sameBestActions.add(bestAction);
+                    sameBestActions.add(curAction);
+                } else {
+                    sameBestActions.add(curAction);
+                }
             }
-
-            double curGain = heuristic.evaluateState(stCopy, id);
-            if (heuristic.evaluateState(stCopy, id) > maxGain) {
-                bestAction = availableActions.get(i);
+            if (curGain > maxGain) {
+                bestAction = curAction;
                 maxGain = curGain;
+                if (sameBestActions.size() > 0) {
+                    sameBestActions.clear();
+                }
             }
+if (isDebug) {
+    System.out.printf("\tCurTotalGain: [%f]\n", curGain);
+}
         }
 
-        //return bestAction;
-        return null;
+if (isDebug) {
+    System.out.printf("maxGain: %f, bestAction: ", maxGain);
+    System.out.println(bestAction);
+    System.out.println(String.join("", Collections.nCopies(20, "-")));
+}
+
+        if (sameBestActions.size() > 0) {
+            bestAction = sameBestActions.get(new Random().nextInt(sameBestActions.size()));
+        }
+        return bestAction;
+        //return null;
     }
 
     private void printGameInfo (ArrayList<Observation>[] obsListArr) {
@@ -108,6 +135,7 @@ public class Agent extends AbstractMultiPlayer {
             System.out.println(String.join("", Collections.nCopies(20, "-")));
         }
     }
+
     private void printGameInfo (ArrayList<Observation>[] obsListArr, int idx) {
         if (obsListArr == null) {
             System.out.println("EMPTY Array!");
@@ -130,10 +158,15 @@ public class Agent extends AbstractMultiPlayer {
         System.out.println(position);
     }
 
-
     private Types.ACTIONS getOppNotLosingAction (StateObservationMulti stateObs, int id, int oppID) {
         int no_players = stateObs.getNoPlayers();
         ArrayList<Types.ACTIONS> oppActions = stateObs.getAvailableActions(oppID);
+        oppActions.remove(Types.ACTIONS.ACTION_NIL); //假设另一个玩家始终保持运动
+
+if (isDebug) {
+//    System.out.println(oppActions);
+}
+
         // Record actions which won't kill the opp
         ArrayList<Types.ACTIONS> nonDeathActions = new ArrayList<>();
 
@@ -156,6 +189,7 @@ public class Agent extends AbstractMultiPlayer {
             return oppActions.get(new Random().nextInt(oppActions.size()));
         } else {
             //Randomly choose one non-death action
+
             return nonDeathActions.get(new Random().nextInt(nonDeathActions.size()));
         }
     }
