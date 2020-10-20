@@ -12,7 +12,7 @@ public class CompetitionParameters
     /**
      * Milliseconds allowed per controller action.
      */
-    public static final int ACTION_TIME = 40;
+    public static final int ACTION_TIME = 50;
 //    public static final int ACTION_TIME = 10;
 
     /**
@@ -87,8 +87,8 @@ public class CompetitionParameters
      *  Time limits are WALL TIME on Windows, because CPU TIME is not accurate enough
      *  at the level of milliseconds on this OS.
      */
-    public static final boolean TIME_CONSTRAINED = false; //任务二时可以设置为false
-    //public static final boolean TIME_CONSTRAINED = true;
+    //public static final boolean TIME_CONSTRAINED = false; //任务二时可以设置为false
+    public static final boolean TIME_CONSTRAINED = true;
 
     /**
      * Max number of evaluations that can be done

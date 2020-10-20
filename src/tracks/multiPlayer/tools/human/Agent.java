@@ -47,7 +47,7 @@ public class Agent extends AbstractMultiPlayer
         if(action == Types.ACTIONS.ACTION_NIL && useOn)
             action = Types.ACTIONS.ACTION_USE;
 //Debug
-System.out.println(stateObs.getAvatarPosition(id));
+//System.out.println(stateObs.getAvatarPosition(id));
 
         return action;
     }
