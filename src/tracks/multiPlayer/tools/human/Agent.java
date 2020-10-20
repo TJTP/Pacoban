@@ -10,6 +10,8 @@ import tools.Direction;
 import tools.ElapsedCpuTimer;
 import tools.Utils;
 
+import java.util.ArrayList;
+
 /**
  * Created by diego on 06/02/14.
  */
@@ -47,7 +49,9 @@ public class Agent extends AbstractMultiPlayer
         if(action == Types.ACTIONS.ACTION_NIL && useOn)
             action = Types.ACTIONS.ACTION_USE;
 //Debug
-//System.out.println(stateObs.getAvatarPosition(id));
+//System.out.print(stateObs.getAvatarType(id));
+//System.out.print("  ");
+//System.out.println(stateObs.getGameScore(id));
 
         return action;
     }

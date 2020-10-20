@@ -17,24 +17,12 @@ public class MyHeuristic extends StateHeuristicMulti {
 
     public static final int lookahead = 3;
     private static final boolean isDebug = false;
-    private static final int alertGhostDist = 5;
-    private static final int dangerGhostDist = 3;
+    private static final int alertGhostDist = 5, dangerGhostDist = 3, deadGhostDist = 1;
 
-    private enum Itype {
-        PELLET(5), FRUIT(4), POWER(6), BLOCK(0);
-
-        private int val = 0;
-
-        Itype(int value) {
-            this.val = value;
-        }
-        public int getValue() {
-            return val;
-        }
-    }
     private enum ExpectScore {
         PELLET(1), FRUIT(1.25), POWER(2.5), DBLOCK(-200),
-        GETSCORE(10), BACK(-30), NEARGHOST(-35), CLOSEGHOST(-50);
+        GETSCORE(10), GETPOWER(200),BACK(-30), NEARGHOST(-35),
+        CLOSEGHOST(-50), INGHOST (-300), DPOWER(-50);
 
         private double val;
 
@@ -68,14 +56,12 @@ public class MyHeuristic extends StateHeuristicMulti {
      *                   蓝色, itype=18, obsID=739
      *                   黄色, itype=24, obsID=740
      *                   红色, itype=15, obsID=741
+     * getAvatarType(): 得到吃豆人的状态
+     *                  普通状态时为28, 31
+     *                  无敌状态时为29, 32
      */
     public double evaluateState(StateObservationMulti stateObs, int playerID) {
         double value = 0.0; //当前状态的总估值
-        //各个部分的估值
-        double curActGain = 0.0, backPosGain = 0.0, ghostAlertGain = 0.0,
-                ghostCloseGain = 0.0, pelletAroundGain = 0.0, pelletAheadGain = 0.0,
-                fruitAroundGain = 0.0, fruitAheadGain = 0.0, powerAroundGain = 0.0,
-                powerAheadGain = 0.0;
 
         Vector2d avatarPos = stateObs.getAvatarPosition(playerID);
         //如果遇到两层及以上的墙块的时候, 吃豆人的位置不会发生改变, 直接排除掉该动作
@@ -84,10 +70,20 @@ public class MyHeuristic extends StateHeuristicMulti {
             return value;
         }
 
+        //各个部分的估值
+        double curActGain = 0.0, backPosGain = 0.0, ghostAlertGain = 0.0,
+                ghostCloseGain = 0.0, pelletAroundGain = 0.0, pelletAheadGain = 0.0,
+                fruitAroundGain = 0.0, fruitAheadGain = 0.0, powerAroundGain = 0.0,
+                powerAheadGain = 0.0;
+
         double curActionValue = stateObs.getGameScore(playerID) - originStateObs.getGameScore(playerID); //获得当前动作取得的分数, 吃到豆子/宝石/水果
-        if (curActionValue > 0) {
-            //如果当前步能得分, 那么估值上加上GETSCORE
+        if (curActionValue == 1.0 || curActionValue == 5.0) {
+            //如果当前步能吃到豆子或者水果, 那么估值上加上GETSCORE
             curActGain += ExpectScore.GETSCORE.getValue();
+        } else if (curActionValue == 10.0) {
+            //如果能吃到宝石, 那么这步就是最优先的选择
+            value += ExpectScore.GETPOWER.getValue();
+            return value;
         }
 
         Vector2d lastOrientation = stateObs.getAvatarOrientation(playerID);
@@ -106,7 +102,10 @@ if (isDebug) {
         for (ArrayList<Observation> ghostObsList: ghostObsListArr) {
             if (ghostObsList.size() != 0) { //运行到一定时间getNPCPosition()会返回一些空数组列表
                 double ghostDist = getManhattanDistance(avatarPos, ghostObsList.get(0).position);
-                if (ghostDist <= dangerGhostDist) {
+                if (ghostDist <= deadGhostDist) {
+                    value += ExpectScore.INGHOST.getValue();
+                    return value;
+                } else if (ghostDist <= dangerGhostDist) {
                     ghostCloseGain += ExpectScore.CLOSEGHOST.getValue();
                 } else if (ghostDist <= alertGhostDist) {
                     ghostAlertGain += ExpectScore.NEARGHOST.getValue();
@@ -196,12 +195,12 @@ if (isDebug) {
             }
         }*/
 if (isDebug) {
-    System.out.printf("\tcurActGain: %f, backPosGain: %f, ghostAlertGain: %f\n" +
-            "\tghostCloseGain: %f, pelletAroundGain: %f, pelletAheadGain: %f\n" +
-            "\tfruitAround: %f, fruitAheadGain: %f, powerAroundGain: %f\n" +
-            "\tpowerAheadGain: %f\n", curActGain, backPosGain, ghostAlertGain, ghostCloseGain,
-            pelletAroundGain, pelletAheadGain, fruitAroundGain, fruitAheadGain, powerAroundGain,
-            powerAheadGain);
+//    System.out.printf("\tcurActGain: %f, backPosGain: %f, ghostAlertGain: %f\n" +
+//            "\tghostCloseGain: %f, pelletAroundGain: %f, pelletAheadGain: %f\n" +
+//            "\tfruitAround: %f, fruitAheadGain: %f, powerAroundGain: %f\n" +
+//            "\tpowerAheadGain: %f\n", curActGain, backPosGain, ghostAlertGain, ghostCloseGain,
+//            pelletAroundGain, pelletAheadGain, fruitAroundGain, fruitAheadGain, powerAroundGain,
+//            powerAheadGain);
 }
         value = curActGain + backPosGain + ghostAlertGain + ghostCloseGain
                 + pelletAroundGain + pelletAheadGain + fruitAroundGain + fruitAheadGain
@@ -209,8 +208,81 @@ if (isDebug) {
         return value;
     }
 
-    private double getManhattanDistance(Vector2d x1, Vector2d x2) {
-        return (Math.abs(x1.x-x2.x) + Math.abs(x1.y-x2.y)) / blockSize;
+    public double evaluateStateAdvanced (Vector2d nearestGhost, StateObservationMulti stateObs, int playerID) {
+        Vector2d avatarPos = stateObs.getAvatarPosition(playerID);
+        double value = 0.0;
+        double manDist = getManhattanDistance(avatarPos, nearestGhost);
+        value -= manDist;
+
+        StateObservationMulti stCopy = stateObs.copy();
+        Types.ACTIONS[] actions = new Types.ACTIONS[]{Types.ACTIONS.ACTION_NIL, Types.ACTIONS.ACTION_NIL};
+//        stCopy.advance(actions); //提前两个timestemp离开幽灵
+//        stCopy.advance(actions); //提前三个timestemp离开幽灵
+
+if (isDebug) {
+    System.out.printf("\tManhattan dist: %f\n", manDist);
+}
+        if (stCopy.getAvatarType(playerID) == Itype.HUNGARY0.getValue()
+            || stCopy.getAvatarType(playerID) == Itype.HUNGARY1.getValue()) {
+if (isDebug) {
+    System.out.println("\tGoing TO DIEEEEEEEEEEEEEEEE!");
+}
+            ArrayList<Observation>[] ghostObsListArr = stateObs.getNPCPositions(avatarPos); //取得幽灵的位置信息
+            for (ArrayList<Observation> ghostObsList: ghostObsListArr) {
+                if (ghostObsList.size() != 0) { //运行到一定时间getNPCPosition()会返回一些空数组列表
+                    double ghostAvatarDist = getManhattanDistance(avatarPos, ghostObsList.get(0).position);
+                    if (ghostAvatarDist <= deadGhostDist) {
+                        value += ExpectScore.INGHOST.getValue();
+                    } else if (ghostAvatarDist <= dangerGhostDist) {
+                        value += ExpectScore.CLOSEGHOST.getValue();
+                    } else if (ghostAvatarDist <= alertGhostDist) {
+                        value += ExpectScore.NEARGHOST.getValue();
+                    }
+                }
+            }
+            return value;
+        }
+
+        //如果遇到两层及以上的墙块的时候, 吃豆人的位置不会发生改变, 直接排除掉该动作
+        if (avatarPos.equals(originStateObs.getAvatarPosition(playerID))) {
+            value += ExpectScore.DBLOCK.getValue();
+            return value;
+        }
+
+        double curActionValue = stateObs.getGameScore(playerID) - originStateObs.getGameScore(playerID); //获得当前动作取得的分数, 吃到豆子/宝石/水果
+        if (curActionValue == 10.0) {
+            //如果能吃到宝石, 那么尽量不走这步, 使得能有下一次攻击幽灵
+            value += ExpectScore.DPOWER.getValue();
+        }
+
+        ArrayList<Observation>[] immovableObsListArr = stateObs.getImmovablePositions(avatarPos);
+        ArrayList<Observation> fruitObsList, powerObsList, blockObsList;
+        fruitObsList = powerObsList = blockObsList =null;
+        for (ArrayList<Observation> obsList: immovableObsListArr) {
+            if (obsList.size() > 0) {
+                int tp = obsList.get(0).itype;
+                if (tp == Itype.FRUIT.getValue()) {
+                    fruitObsList = obsList;
+                } else if (tp == Itype.POWER.getValue()) {
+                    powerObsList = obsList;
+                } else if (tp == Itype.BLOCK.getValue()) {
+                    blockObsList = obsList;
+                }
+            }
+        }
+
+        if (powerObsList != null) {
+            if (powerObsList.get(0).sqDist <= maxDist) {
+                value += ExpectScore.DPOWER.getValue();
+            }
+        }
+
+        return value;
+    }
+
+
+    public double getManhattanDistance(Vector2d x1, Vector2d x2) {
+        return (Math.abs(x1.x - x2.x) + Math.abs(x1.y - x2.y)) / blockSize;
     }
 
     private boolean isOnOrientation(Vector2d x0, Vector2d orientation, Vector2d x1) {
